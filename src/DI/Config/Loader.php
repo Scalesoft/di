@@ -21,6 +21,7 @@ class Loader
 	use Nette\SmartObject;
 
 	private const INCLUDES_KEY = 'includes';
+	private const INCLUDES_MAX_DEPTH = 30;
 
 	private $adapters = [
 		'php' => Adapters\PhpAdapter::class,
@@ -29,6 +30,8 @@ class Loader
 	];
 
 	private $dependencies = [];
+
+	private $loadedFiles=[];
 
 
 	/**
@@ -39,6 +42,13 @@ class Loader
 	{
 		if (!is_file($file) || !is_readable($file)) {
 			throw new Nette\FileNotFoundException("File '$file' is missing or is not readable.");
+		}
+		if (!isset($this->loadedFiles[$file])) {
+			$this->loadedFiles[$file] = -1;
+		}
+		$this->loadedFiles[$file]++;
+		if ($this->loadedFiles[$file] > self::INCLUDES_MAX_DEPTH) {
+			throw new Nette\DI\IncludesMaxDepthReachedException($file);
 		}
 		$this->dependencies[] = $file;
 		$data = $this->getAdapter($file)->load($file);
